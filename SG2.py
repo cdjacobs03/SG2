@@ -14,6 +14,9 @@ from os import path
 from collections import defaultdict
 from pathlib import Path
 import string
+import sys
+import re
+
 #constant
 file_extension = "txt" 
 #Prompt User what this program does, return nothing.
@@ -24,24 +27,27 @@ def promptUser():
 #Prompt user to enter filename, takes in x as parameter, and returns nothing when succesful
 """ Take in filename, check if it has .txt on end and if it exists in filepath and then return boolean. 
 """
-def getFile():
+def getFile(temp):
     filename = ""
     while True:
-        filename = input("Please Enter a filename, you can enter up to 10 a filenames(All must be within the same folder as the app):")
-        if len(filename) == 0:
-            print("Input is empty, please try again.")
-            continue
-
-        if not filename.lower().endswith(".txt"):
-            print("Invalid file type. Must be a text (*.txt) file.")
-            continue
-
-        file = Path(filename).resolve()
-        if not file.exists():
-            print("File does not exist. Please try again.")
-            continue
-
-        return str(file)
+        filename = input("Please Enter a filename, you can enter up to 10 a filenames(All must be within the same folder as the app):").strip() # Added strip to eliminate any spaces before and after the filename
+       
+        # Check if filename ends with .txt (case-insensitive)
+        if filename.lower().endswith(".txt"):
+            file = Path(filename).resolve()
+            if not file.exists():
+                print("File does not exist. Please try again.")
+            else:
+                # Added check for duplicate filenames
+                if str(file) in temp:
+                    print("ERROR: You have already entered that filename")
+                else:
+                    return str(file)
+        else:
+            if len(filename) == 0:
+                print("Input is empty, please try again.")
+            else:
+                print("Invalid file type. Must be a text (*.txt) file.")
 
 #Get continuancy boolean value from if user wants to continue entering files.
 def getContinuancy(z):
@@ -57,51 +63,24 @@ def getContinuancy(z):
         return getContinuancy(z)
     return z
     
-    
+#Clean text
+def remove_punctuation(text):
+    # Finds and removes all punctuation from the string
+    pattern = r'[^\w\s-]|(?<!\w)-(?!\w)'
+    return re.sub(pattern, '', text).replace('\r', '').replace('\n', '')
+
 #Get Content from file and make into wordlist
 def getContent(filename): 
     wordlist = []
-    endFunction = False # if true the function ends
-    # things to remove before adding word to list
-    removables = ["!",",",".","\"","","[","]","(",")","{","}","~","?","`"] 
-    while endFunction == False:
-        with open(filename,"rt") as f: 
-            prev_word = "" 
-            mergePrevWord = False
-            for line in f:
-                if len(prev_word) > 0:
-                    if not line.startswith(" "):
-                        mergePrevWord = True                         
-                words = line.split(" ")
-                for word in words: 
-                    endofLine = len(words) - 1
-                    if word == "-": 
-                        word = ""
-                    else:                              
-                        if mergePrevWord:                            
-                            word = prev_word + words[0]
-                            # clean word before appending
-                            word = word.strip("".join(removables))
-                            wordlist.append(word)
-                            prev_word = ""
-                            mergePrevWord = False
-                        else:
-                            if word.endswith("-"):
-                                if words.index(word,endofLine) == endofLine:
-                                    prev_word = word
-                                else:
-                                    word = word.replace("-","")
-                                    word = word.strip("".join(removables))
-                                    wordlist.append(word)
-                            elif word.startswith("-"):
-                                word = word.replace("-","")
-                                word = word.strip("".join(removables))
-                                wordlist.append(word)
-                            else:
-                                word = word.strip("".join(removables))
-                                wordlist.append(word)
-        endFunction = True  
-    return wordlist
+    try:
+        with open(filename, 'r', encoding="utf-8") as f: 
+            content = f.read()
+            content = remove_punctuation(content).lower()
+            wordlist = content.split()
+        return wordlist
+    except FileNotFoundError:
+        print(f"Error: file '{filename}' not found.")
+        return False
 
 def getSearchWord():
     endFunction = False # if true the function ends
@@ -135,6 +114,7 @@ def getSearchWord():
             print("Please enter a word to search")
             endFunction = False
     return searchWord
+
 def countOccurrences(wordList, searchWord):
     count = 0     
     for word in wordList:
@@ -355,9 +335,9 @@ def main():
     while x == False:
         #Call each function to perform their own task
         z = True
-        y = 1
-        while(z == True and y <= 10):
-            file = getFile()
+        y = 0
+        while(z == True and y < 10): # Changed to start at 0 because that is how arrays count
+            file = getFile(all_wordlists)
             words = getContent(file) # words variable holds the words for each file
             if len(words) > 0:
                 all_wordlists[file] = words #store each file separately
@@ -377,7 +357,7 @@ def main():
         # count occurrences across all files
         total_count = 0
         file_counts = {}
-        for f, w in all_wordlists.items():
+        for f, w in all_wordlists.items(): # FYI: You've over thought this and it can be done in 5 lines of code
             c = countOccurrences(w, searchWord)
             file_counts[f] = c
             print(f'The word "{searchWord}" was found in {Path(f).name}: {c} time(s).')
