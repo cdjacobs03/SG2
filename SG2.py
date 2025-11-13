@@ -39,10 +39,10 @@ def getFile(temp):
                 print("File does not exist. Please try again.")
             else:
                 # Added check for duplicate filenames
-                if str(file) in temp:
+                if str(filename) in temp:
                     print("ERROR: You have already entered that filename")
                 else:
-                    return str(file)
+                    return str(filename)
         else:
             if len(filename) == 0:
                 print("Input is empty, please try again.")
@@ -66,8 +66,8 @@ def getContinuancy(z):
 #Clean text
 def remove_punctuation(text):
     # Finds and removes all punctuation from the string
-    pattern = r'[^\w\s-]|(?<!\w)-(?!\w)'
-    return re.sub(pattern, '', text).replace('\r', '').replace('\n', '')
+    pattern = r'[^\w\s-]|(?<!\w)-(?!\w)|(?<!\w)-(?!\r)|(?<!\w)-(?!\n)'
+    return re.sub(pattern, '', text) # 
 
 #Get Content from file and make into wordlist
 def getContent(filename): 
@@ -191,15 +191,15 @@ def build_Concordance(all_wordlists, ignore_Words):
     file_Number = 1
 
     for filename in all_wordlists.keys():
-        with open(filename, "rt") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             line_Number = 0
             for line in f:
                 line_Number += 1
-                line_words = line.split()
+                line_words = remove_punctuation(line).split()
                 word_Number = 0
                 for word in line_words:
                     word_Number += 1
-                    clean = word.strip("()[]{},?\/!.'").lower()
+                    clean = word
                     if not clean or clean in ignore_Words:
                         continue
                     concordance[clean].append((file_Number, line_Number, word_Number))
@@ -214,7 +214,7 @@ def create_Concordance(concordance, highlight_Words):
     sort_Words = sorted(concordance.keys(), key=lambda w: w.replace("-", "\x00")) # \n00 acts as a null character. 
     
     #Open file to write to
-    with open("Concordance.txt", "w") as f:
+    with open("Concordance.txt", "w", encoding="utf-8") as f:
         #Loop through every word.
         for word in sort_Words:
             if word in highlight_Words:
@@ -343,7 +343,10 @@ def main():
                 all_wordlists[file] = words #store each file separately
                 y += 1
                 #Call getContinuancy to check if user wants to continue entering or not
-                z = getContinuancy(z)
+                if y < 10:
+                    z = getContinuancy(z)
+                else:
+                    x = True
             else:
                 print("File does not exist. Please Try again.")
                 z = True
