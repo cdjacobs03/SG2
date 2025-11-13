@@ -206,7 +206,7 @@ def build_Concordance(all_wordlists, ignore_Words):
                     if clean.endswith('-'):
                         hyphen = [clean,file_Number,line_Number,word_Number]
                     elif hyphen:
-                        print(hyphen)
+                       #  print(hyphen)
                         clean = f"{hyphen[0]}{clean}" 
                         if not clean or clean in ignore_Words:
                             hyphen = []
