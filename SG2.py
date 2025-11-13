@@ -66,8 +66,9 @@ def getContinuancy(z):
 #Clean text
 def remove_punctuation(text):
     # Finds and removes all punctuation from the string
-    pattern = r'[^\w\s-]|(?<!\w)-(?!\w)|(?<!\w)-(?!\r)|(?<!\w)-(?!\n)'
-    return re.sub(pattern, '', text) # 
+    # pattern = r'[^\w\s-]|(?<!\w)-(?!\w)|(?<!\w)-(?!\r)|(?<!\w)-(?!\n)'
+    pattern = r'[^\w\s-]|(?<!\w)-(?!\w)'
+    return re.sub(pattern, '', text).replace('\r', '').replace('\n', '')
 
 #Get Content from file and make into wordlist
 def getContent(filename): 
@@ -193,16 +194,30 @@ def build_Concordance(all_wordlists, ignore_Words):
     for filename in all_wordlists.keys():
         with open(filename, "r", encoding="utf-8") as f:
             line_Number = 0
+            hyphen = []
             for line in f:
                 line_Number += 1
-                line_words = remove_punctuation(line).split()
+                line_words = remove_punctuation(line).lower().split()
                 word_Number = 0
+                
                 for word in line_words:
                     word_Number += 1
                     clean = word
-                    if not clean or clean in ignore_Words:
-                        continue
-                    concordance[clean].append((file_Number, line_Number, word_Number))
+                    if clean.endswith('-'):
+                        hyphen = [clean,file_Number,line_Number,word_Number]
+                    elif hyphen:
+                        print(hyphen)
+                        clean = f"{hyphen[0]}{clean}" 
+                        if not clean or clean in ignore_Words:
+                            hyphen = []
+                            continue
+                        concordance[clean].append((hyphen[1], hyphen[2], hyphen[3]))
+                        concordance[clean].append((file_Number, line_Number, word_Number))
+                        hyphen = []
+                    else:
+                        if not clean or clean in ignore_Words:
+                            continue
+                        concordance[clean].append((file_Number, line_Number, word_Number))
         file_Number += 1
 
     # Return concordance
